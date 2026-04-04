@@ -31,6 +31,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Jua">
     <link rel="stylesheet" href="/style.css">
+    <meta name="theme-color" content="#ccffcc" />
 
     <!-- Embed Image -->
     <link rel="apple-touch-icon" href="/templateicon1.png">
@@ -48,6 +49,13 @@
     Template
 
     <script src="/script.js"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+
 </body>
 
 </html>
