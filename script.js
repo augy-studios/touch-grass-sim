@@ -887,7 +887,7 @@ document.getElementById('lb-submit-btn').addEventListener('click', async () => {
 document.getElementById('share-btn').addEventListener('click', () => {
     const rare = S.discoveries.filter(d => d.rarity === 'rare').map(d => d.text).join(', ') || 'nothing rare';
     const loc = S.location ? `📍 ${S.location}\n` : '';
-    const text = `🌿 Touch Grass Simulator\n${loc}⏱ ${fmt(S.elapsed)} outside\n✨ ${S.discoveries.length} discoveries · ${S.score} pts\n⭐ Rare: ${rare}\n\nhttps://touch-grass-sg.vercel.app`;
+    const text = `🌿 Touch Grass Simulator\n${loc}⏱ ${fmt(S.elapsed)} outside\n✨ ${S.discoveries.length} discoveries · ${S.score} pts\n⭐ Rare: ${rare}\n\nhttps://grass.uwuapps.org`;
     navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
 });
 
