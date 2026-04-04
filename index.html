@@ -108,6 +108,13 @@
                     </div>
                 </div>
             </div>
+            <div id="hud-weather-row" class="hud-row" style="display:none">
+                <div class="hud-icon">🌬️</div>
+                <div>
+                    <div class="hud-label">Wind</div>
+                    <div class="hud-value" id="hud-wind" style="font-size:.85rem"></div>
+                </div>
+            </div>
             <div class="hud-divider"></div>
             <button class="btn btn-secondary" id="go-inside-btn">🏠 Go Back Inside</button>
         </div>
@@ -143,7 +150,19 @@
 
             <div class="discoveries-list" id="discoveries-list"></div>
 
-            <div style="display:flex;gap:.65rem">
+            <!-- Leaderboard -->
+            <div id="leaderboard-section" class="leaderboard-section">
+                <div class="lb-header">🏆 Global Leaderboard</div>
+                <div class="lb-submit-row" id="lb-submit-row">
+                    <input type="text" class="location-input lb-username" id="lb-username"
+                        placeholder="Your name" maxlength="32" autocomplete="off" />
+                    <button class="btn btn-primary" id="lb-submit-btn"
+                        style="padding:.6rem 1.1rem;font-size:.85rem;flex-shrink:0">🏆 Submit</button>
+                </div>
+                <div id="lb-list"></div>
+            </div>
+
+            <div style="display:flex;gap:.65rem;margin-top:.75rem">
                 <button class="btn btn-primary" id="play-again-btn" style="flex:1">🌱 Go Again</button>
                 <button class="btn btn-secondary" id="share-btn">📋 Copy</button>
             </div>

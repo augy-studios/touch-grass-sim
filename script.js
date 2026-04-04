@@ -17,6 +17,9 @@ const S = {
     masterGain: null,
     dpr: devicePixelRatio || 1,
     raf: null,
+    windSpeed: 0,   // m/s from Open-Meteo
+    windFactor: 0,  // normalised [0, 2.5]
+    lbSubmitted: false,
 };
 
 // ─── DOM refs ─────────────────────────────────────────────
@@ -269,10 +272,11 @@ function drawCelestial() {
 }
 
 function drawGrass() {
-    const t = Date.now() * 0.001;
+    const windLean = S.windFactor * 0.14;               // directional lean (radians)
+    const windAmpMult = 1 + S.windFactor * 0.7;         // sway amplitude multiplier
     S.grass.forEach(b => {
         b.sway += b.swaySpd;
-        const naturalSway = Math.sin(b.sway) * b.swayAmp;
+        const naturalSway = Math.sin(b.sway) * b.swayAmp * windAmpMult + windLean;
         const diff = b.targetAngle - b.angle;
         b.angle += diff * b.tension;
 
@@ -300,10 +304,10 @@ function render() {
 // ─── Interaction ──────────────────────────────────────────
 function pointerHandler(cx, cy) {
     if (S.screen !== 'explore') return;
-    const RADIUS = 110;
+    const RADIUS = 110; // Manhattan radius — diamond-shaped interaction area
 
     S.grass.forEach(b => {
-        const dist = Math.hypot(b.x - cx, b.by - cy);
+        const dist = Math.abs(b.x - cx) + Math.abs(b.by - cy);
         if (dist < RADIUS) {
             const str = (RADIUS - dist) / RADIUS;
             b.targetAngle = Math.atan2(b.x - cx, 50) * str * 0.55;
@@ -312,9 +316,9 @@ function pointerHandler(cx, cy) {
         }
     });
 
-    // Check discovery points
+    // Check discovery points (Manhattan, scaled so hit-feel matches old circle)
     S.discoveryPts.forEach((pt, i) => {
-        if (Math.hypot(pt.x - cx, pt.y - cy) < 48) {
+        if (Math.abs(pt.x - cx) + Math.abs(pt.y - cy) < 68) {
             triggerDiscovery(pt.x, pt.y, pt.rarity);
             // Respawn
             S.discoveryPts[i] = {
@@ -531,6 +535,88 @@ function playDiscovery(rarity) {
     }
 }
 
+// ─── Weather ──────────────────────────────────────────────
+async function fetchWeather(lat, lon) {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&current=windspeed_10m,weathercode&windspeed_unit=ms`;
+        const res = await fetch(url);
+        const data = await res.json();
+        S.windSpeed = data.current?.windspeed_10m ?? 0;
+        S.windFactor = Math.min(S.windSpeed / 6, 2.5);
+        updateWeatherHUD();
+    } catch (e) {
+        console.warn('Weather unavailable', e);
+    }
+}
+
+function updateWeatherHUD() {
+    const row = document.getElementById('hud-weather-row');
+    const val = document.getElementById('hud-wind');
+    if (!row || !val) return;
+    row.style.display = 'flex';
+    const ws = S.windSpeed;
+    const icon = ws < 1 ? '🍃' : ws < 4 ? '🌬️' : ws < 9 ? '💨' : '🌪️';
+    const label = ws < 1 ? 'Calm' : ws < 4 ? 'Breezy' : ws < 9 ? 'Windy' : 'Very Windy';
+    val.textContent = `${icon} ${ws.toFixed(1)} m/s · ${label}`;
+}
+
+// ─── Leaderboard ──────────────────────────────────────────
+function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function fetchLeaderboard() {
+    try {
+        const res = await fetch('/api/leaderboard');
+        if (!res.ok) return [];
+        return await res.json();
+    } catch { return []; }
+}
+
+async function submitToLeaderboard(username) {
+    const res = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username,
+            discoveries: S.discoveries.length,
+            time_seconds: S.elapsed,
+            rare_finds: S.discoveries.filter(d => d.rarity === 'rare').length,
+            location: S.location,
+        }),
+    });
+    return res.ok;
+}
+
+async function renderLeaderboard() {
+    const list = document.getElementById('lb-list');
+    if (!list) return;
+    list.innerHTML = '<div class="lb-loading">Loading…</div>';
+    const rows = await fetchLeaderboard();
+    if (!rows.length) {
+        list.innerHTML = '<div class="lb-loading">No scores yet — be the first!</div>';
+        return;
+    }
+    const medals = ['🥇', '🥈', '🥉'];
+    const table = document.createElement('table');
+    table.className = 'lb-table';
+    table.innerHTML = `<thead><tr><th>#</th><th>Name</th><th>Finds</th><th>Rare</th><th>Time</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    rows.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="lb-rank">${medals[i] || i + 1}</td>
+            <td>${escHtml(r.username)}</td>
+            <td>${r.discoveries}</td>
+            <td>${r.rare_finds}</td>
+            <td>${fmt(r.time_seconds)}</td>`;
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    list.innerHTML = '';
+    list.appendChild(table);
+}
+
 // ─── Timer ────────────────────────────────────────────────
 function startTimer() {
     S.timerStart = Date.now() - S.elapsed * 1000;
@@ -595,6 +681,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
     S.location = document.getElementById('location-input').value.trim();
     S.elapsed = 0;
     S.discoveries = [];
+    S.lbSubmitted = false;
     hudCount.textContent = '0';
     hudTimer.textContent = '0:00';
     if (S.location) {
@@ -603,6 +690,21 @@ document.getElementById('start-btn').addEventListener('click', () => {
     } else {
         hudLocRow.style.display = 'none';
     }
+    // Reset weather HUD until new fetch completes
+    const weatherRow = document.getElementById('hud-weather-row');
+    if (weatherRow) weatherRow.style.display = 'none';
+
+    // Fetch live weather via geolocation (Singapore fallback)
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+            ()  => fetchWeather(1.3521, 103.8198),
+            { timeout: 6000 }
+        );
+    } else {
+        fetchWeather(1.3521, 103.8198);
+    }
+
     transitionTo('explore');
     startTimer();
     setAmbient(true);
@@ -654,7 +756,35 @@ function buildSummary() {
         });
         list.appendChild(sec);
     });
+
+    // Leaderboard
+    const lbSection = document.getElementById('leaderboard-section');
+    if (lbSection) lbSection.style.display = '';
+    const submitRow = document.getElementById('lb-submit-row');
+    if (submitRow) submitRow.style.display = S.lbSubmitted ? 'none' : 'flex';
+    const submitBtn = document.getElementById('lb-submit-btn');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '🏆 Submit'; }
+    renderLeaderboard();
 }
+
+document.getElementById('lb-submit-btn').addEventListener('click', async () => {
+    const username = document.getElementById('lb-username').value.trim();
+    if (!username) { showToast('Enter a name first!'); return; }
+    const btn = document.getElementById('lb-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    const ok = await submitToLeaderboard(username);
+    if (ok) {
+        S.lbSubmitted = true;
+        showToast('Score submitted! 🏆');
+        document.getElementById('lb-submit-row').style.display = 'none';
+        renderLeaderboard();
+    } else {
+        showToast('Could not submit — try again.');
+        btn.disabled = false;
+        btn.textContent = '🏆 Submit';
+    }
+});
 
 document.getElementById('share-btn').addEventListener('click', () => {
     const rare = S.discoveries.filter(d => d.rarity === 'rare').map(d => d.text).join(', ') || 'nothing rare';

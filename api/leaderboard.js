@@ -1,0 +1,79 @@
+export const config = {
+    runtime: 'edge'
+};
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'application/json',
+};
+
+export default async function handler(req) {
+    if (req.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+        return new Response(JSON.stringify({ error: 'Leaderboard not configured' }), {
+            status: 503, headers: corsHeaders,
+        });
+    }
+
+    const authHeaders = {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+    };
+
+    // GET — fetch top 10 by discoveries desc, then rare_finds desc
+    if (req.method === 'GET') {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/touch_grass_lb?select=username,discoveries,time_seconds,rare_finds,location&order=discoveries.desc,rare_finds.desc&limit=10`,
+            { headers: authHeaders }
+        );
+        if (!res.ok) return new Response(JSON.stringify([]), { status: 200, headers: corsHeaders });
+        const data = await res.json();
+        return new Response(JSON.stringify(data), {
+            status: 200,
+            headers: { ...corsHeaders, 'Cache-Control': 'public, max-age=30' },
+        });
+    }
+
+    // POST — submit a score
+    if (req.method === 'POST') {
+        let body;
+        try { body = await req.json(); } catch {
+            return new Response('Bad request', { status: 400 });
+        }
+
+        const { username, discoveries, time_seconds, rare_finds, location } = body;
+        if (!username || typeof discoveries !== 'number') {
+            return new Response('Invalid data', { status: 400 });
+        }
+
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/touch_grass_lb`, {
+            method: 'POST',
+            headers: {
+                ...authHeaders,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+                username: String(username).slice(0, 32),
+                discoveries: Math.max(0, Math.floor(discoveries)),
+                time_seconds: Math.max(0, Math.floor(time_seconds)),
+                rare_finds: Math.max(0, Math.floor(rare_finds)),
+                location: String(location || '').slice(0, 64),
+            }),
+        });
+
+        if (!res.ok) {
+            const err = await res.text();
+            return new Response(JSON.stringify({ error: err }), { status: 500, headers: corsHeaders });
+        }
+        return new Response(JSON.stringify({ ok: true }), { status: 200, headers: corsHeaders });
+    }
+
+    return new Response('Method not allowed', { status: 405 });
+}

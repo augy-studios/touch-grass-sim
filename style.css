@@ -639,6 +639,71 @@ body {
   }
 }
 
+/* ─── Leaderboard ────────────────────────────────────────── */
+.leaderboard-section {
+  border-top: 1px solid rgba(100, 180, 100, 0.20);
+  padding-top: .9rem;
+  margin-top: .25rem;
+}
+
+.lb-header {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: .6rem;
+}
+
+.lb-submit-row {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: .75rem;
+}
+
+.lb-username {
+  flex: 1;
+  min-width: 0;
+}
+
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+}
+
+.lb-table thead th {
+  color: var(--text-light);
+  font-size: .67rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: .2rem .4rem .35rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(100, 180, 100, 0.18);
+}
+
+.lb-table tbody td {
+  padding: .32rem .4rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(100, 180, 100, 0.08);
+}
+
+.lb-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.lb-rank {
+  font-weight: 700;
+  width: 2rem;
+}
+
+.lb-loading {
+  text-align: center;
+  padding: .75rem 1rem;
+  color: var(--text-light);
+  font-size: .82rem;
+}
+
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 480px) {
   .app-title {
