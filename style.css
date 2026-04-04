@@ -87,7 +87,7 @@ body {
 }
 
 .lg-strong {
-  background: rgba(190, 245, 190, 0.70);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-2xl);
   box-shadow: 0 4px 28px rgba(60, 120, 60, 0.16);
 }
