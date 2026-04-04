@@ -31,9 +31,9 @@
   --brand-dark: #55aa55;
   --brand-deep: #2e7d32;
 
-  --text-primary: #4a9a4a;
-  --text-muted: #6abf6a;
-  --text-light: #8fd48f;
+  --text-primary: #2d6e2d;
+  --text-muted: #4a8f4a;
+  --text-light: #6aaa6a;
   --radius-xl: 1.4rem;
   --radius-2xl: 2rem;
   --radius-full: 9999px;
@@ -349,10 +349,12 @@ body {
   border: none;
   border-radius: var(--radius-full);
   padding: .45rem 1rem;
-  font-size: .85rem;
+  font-size: .78rem;
   font-weight: 600;
   box-shadow: 0 4px 16px rgba(60, 120, 60, 0.14);
-  white-space: nowrap;
+  max-width: 13rem;
+  text-align: center;
+  line-height: 1.3;
   animation: chipFloat 2.2s ease-out forwards;
 }
 
