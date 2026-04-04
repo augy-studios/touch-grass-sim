@@ -46,7 +46,126 @@
 </head>
 
 <body>
-    Template
+    <!-- Canvas -->
+    <canvas id="grass-canvas"></canvas>
+
+    <!-- ─── Start Screen ─────────────────────── -->
+    <div class="screen active" id="screen-start">
+        <div class="lg-strong card" id="start-card">
+            <div class="logo-badge">🌿</div>
+            <h1 class="app-title">Touch Grass Simulator</h1>
+            <p class="app-subtitle">Step outside. Explore. Discover hidden things.</p>
+
+            <div class="time-badge">
+                <span class="dot"></span>
+                <span id="time-badge-text">Loading…</span>
+            </div>
+
+            <div class="location-row">
+                <input id="location-input" class="location-input" type="text" placeholder="Where in Singapore are you?"
+                    maxlength="64" autocomplete="off" />
+                <button class="btn-icon" id="shuffle-btn" title="Shuffle location">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="16 3 21 3 21 8" />
+                        <polyline points="4 20 9 20 9 15" />
+                        <path d="M21 3l-7 7-4-4-6 6" />
+                        <path d="M15 20l6-6-4-4" />
+                    </svg>
+                </button>
+            </div>
+
+            <button class="btn btn-primary" id="start-btn" style="width:100%">
+                🌱 Go Touch Some Grass
+            </button>
+        </div>
+    </div>
+
+    <!-- ─── Explore Screen ───────────────────── -->
+    <div class="screen" id="screen-explore">
+        <div class="lg" id="hud">
+            <div class="hud-row">
+                <div class="hud-icon">⏱️</div>
+                <div>
+                    <div class="hud-label">Time Outside</div>
+                    <div class="hud-value" id="hud-timer">0:00</div>
+                </div>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="hud-row">
+                <div class="hud-icon">✨</div>
+                <div>
+                    <div class="hud-label">Discoveries</div>
+                    <div class="hud-value" id="hud-count">0</div>
+                </div>
+            </div>
+            <div id="hud-location-row" class="hud-row" style="display:none">
+                <div class="hud-icon">📍</div>
+                <div>
+                    <div class="hud-label">Location</div>
+                    <div class="hud-value" id="hud-location"
+                        style="font-size:.88rem;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    </div>
+                </div>
+            </div>
+            <div class="hud-divider"></div>
+            <button class="btn btn-secondary" id="go-inside-btn">🏠 Go Back Inside</button>
+        </div>
+    </div>
+
+    <!-- ─── Summary Screen ───────────────────── -->
+    <div class="screen" id="screen-summary">
+        <div class="lg-strong card">
+            <div class="summary-header">
+                <div class="logo-badge" style="width:3rem;height:3rem;font-size:1.3rem;margin-bottom:0">🌿</div>
+                <div>
+                    <div class="summary-title">Adventure Complete</div>
+                    <div id="summary-location" style="font-size:.85rem;color:var(--text-muted)">
+                        Great job touching some grass!
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-time">0:00</div>
+                    <div class="stat-label">Time Outside</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-count">0</div>
+                    <div class="stat-label">Discoveries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-rare">0</div>
+                    <div class="stat-label">Rare Finds</div>
+                </div>
+            </div>
+
+            <div class="discoveries-list" id="discoveries-list"></div>
+
+            <div style="display:flex;gap:.65rem">
+                <button class="btn btn-primary" id="play-again-btn" style="flex:1">🌱 Go Again</button>
+                <button class="btn btn-secondary" id="share-btn">📋 Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+
+    <!-- Install Banner -->
+    <div class="lg" id="install-banner">
+        <div style="font-size:1.6rem">🌿</div>
+        <p><strong>Install Touch Grass</strong>Add to Home Screen for the full experience</p>
+        <div style="display:flex;flex-direction:column;gap:.4rem">
+            <button class="btn btn-primary" id="install-btn"
+                style="padding:.5rem 1rem;font-size:.82rem">Install</button>
+            <button class="btn-icon" id="dismiss-install"
+                style="width:auto;height:auto;padding:.3rem .6rem;font-size:.75rem;border-radius:.5rem">
+                Later
+            </button>
+        </div>
+    </div>
 
     <script src="/script.js"></script>
 
