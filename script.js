@@ -255,7 +255,6 @@ function drawCelestial() {
         ctx.arc(W * 0.82 + 12, H * 0.17, 34, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
-        stars = null; // reset for next size change
     } else if (tod === 'day' || tod === 'morning' || tod === 'dawn') {
         ctx.save();
         const sunY = tod === 'dawn' ? H * 0.35 : tod === 'morning' ? H * 0.22 : H * 0.16;
@@ -700,5 +699,5 @@ if ('serviceWorker' in navigator) {
 updateTimeOfDay();
 setInterval(updateTimeOfDay, 60000);
 resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+window.addEventListener('resize', () => { resizeCanvas(); stars = null; });
 render();
