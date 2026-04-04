@@ -847,7 +847,7 @@ function buildSummary() {
             row.innerHTML = `
         <div style="display:flex;align-items:center">
           <span class="dot dot-${r}"></span>
-          <span class="name">You've found ${d.text}</span>
+          <span class="name">${d.text}</span>
         </div>
         <span class="time">${fmt(d.timestamp)}</span>`;
             sec.appendChild(row);
