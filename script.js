@@ -19,6 +19,11 @@ const S = {
     raf: null,
     windSpeed: 0,   // m/s from Open-Meteo
     windFactor: 0,  // normalised [0, 2.5]
+    weatherCode: 0,
+    isRaining: false,
+    rainIntensity: 0, // 0..1
+    rainDrops: [],
+    rainGain: null,
     lbSubmitted: false,
 };
 
@@ -149,6 +154,7 @@ function resizeCanvas() {
     ctx.scale(S.dpr, S.dpr);
     initGrass();
     initDiscoveryPts();
+    if (S.isRaining) initRain();
 }
 
 function grassColor() {
@@ -293,19 +299,53 @@ function drawGrass() {
     });
 }
 
+function initRain() {
+    const W = innerWidth, H = innerHeight;
+    const count = Math.floor(180 + S.rainIntensity * 420);
+    const spd = 11 + S.rainIntensity * 9;
+    S.rainDrops = Array.from({ length: count }, () => ({
+        x: rand(0, W + 100),
+        y: rand(-H, H),
+        speed: rand(spd * 0.8, spd * 1.2),
+        len: rand(9, 18) * (0.6 + S.rainIntensity * 0.6),
+        alpha: rand(0.18, 0.45) * (0.5 + S.rainIntensity * 0.6),
+    }));
+}
+
+function drawRain() {
+    if (!S.isRaining || !S.rainDrops.length) return;
+    const H = innerHeight, W = innerWidth;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(174, 214, 241, 1)';
+    ctx.lineWidth = 0.8;
+    ctx.globalAlpha = 0.28 + S.rainIntensity * 0.32;
+    ctx.beginPath();
+    S.rainDrops.forEach(d => {
+        d.y += d.speed;
+        d.x -= d.speed * 0.2; // slight diagonal drift
+        if (d.y > H + 20) { d.y = rand(-80, -5); d.x = rand(0, W + 80); }
+        if (d.x < -20) d.x += W + 100;
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x - d.len * 0.2, d.y + d.len);
+    });
+    ctx.stroke();
+    ctx.restore();
+}
+
 function render() {
     ctx.clearRect(0, 0, innerWidth, innerHeight);
     drawSky();
     drawCelestial();
     drawGrass();
+    drawRain();
     S.raf = requestAnimationFrame(render);
 }
 
 // ─── Interaction ──────────────────────────────────────────
 function pointerHandler(cx, cy) {
-    if (S.screen !== 'explore') return;
     const RADIUS = 110; // Manhattan radius — diamond-shaped interaction area
 
+    // Grass reacts on all screens
     S.grass.forEach(b => {
         const dist = Math.abs(b.x - cx) + Math.abs(b.by - cy);
         if (dist < RADIUS) {
@@ -315,6 +355,8 @@ function pointerHandler(cx, cy) {
             b.targetAngle = 0;
         }
     });
+
+    if (S.screen !== 'explore') return;
 
     // Check discovery points (Manhattan, scaled so hit-feel matches old circle)
     S.discoveryPts.forEach((pt, i) => {
@@ -335,7 +377,7 @@ function resetGrassBend() {
     S.grass.forEach(b => b.targetAngle = 0);
 }
 
-canvas.addEventListener('mousemove', e => pointerHandler(e.clientX, e.clientY));
+document.addEventListener('mousemove', e => pointerHandler(e.clientX, e.clientY));
 canvas.addEventListener('touchmove', e => {
     e.preventDefault();
     pointerHandler(e.touches[0].clientX, e.touches[0].clientY);
@@ -432,6 +474,27 @@ function initAudio() {
     wg.connect(S.masterGain);
     wind.start();
 
+    // Rain noise (bandpass filtered white noise, bypasses masterGain for independent volume)
+    const rainBuf = S.audioCtx.createBuffer(1, 2 * S.audioCtx.sampleRate, S.audioCtx.sampleRate);
+    const rainData = rainBuf.getChannelData(0);
+    for (let i = 0; i < rainData.length; i++) rainData[i] = Math.random() * 2 - 1;
+    const rainSrc = S.audioCtx.createBufferSource();
+    rainSrc.buffer = rainBuf;
+    rainSrc.loop = true;
+    const rainHp = S.audioCtx.createBiquadFilter();
+    rainHp.type = 'highpass';
+    rainHp.frequency.value = 800;
+    const rainLp = S.audioCtx.createBiquadFilter();
+    rainLp.type = 'lowpass';
+    rainLp.frequency.value = 4000;
+    S.rainGain = S.audioCtx.createGain();
+    S.rainGain.gain.value = 0;
+    rainSrc.connect(rainHp);
+    rainHp.connect(rainLp);
+    rainLp.connect(S.rainGain);
+    S.rainGain.connect(S.audioCtx.destination);
+    rainSrc.start();
+
     // Bird chirps
     setInterval(() => {
         const h = S.hour;
@@ -445,6 +508,12 @@ function initAudio() {
         const p = (h >= 19 || h < 5) ? 0.65 : h >= 17 ? 0.35 : 0.04;
         if (Math.random() < p && S.screen === 'explore') cricket();
     }, 3000);
+}
+
+function setRain(on) {
+    if (!S.rainGain || !S.audioCtx) return;
+    const vol = on ? 0.18 + S.rainIntensity * 0.22 : 0;
+    S.rainGain.gain.linearRampToValueAtTime(vol, S.audioCtx.currentTime + 2);
 }
 
 function setAmbient(on) {
@@ -536,6 +605,14 @@ function playDiscovery(rarity) {
 }
 
 // ─── Weather ──────────────────────────────────────────────
+// WMO code → rain intensity (0 = dry, >0 = raining)
+const RAIN_CODES = {
+    51: 0.25, 53: 0.45, 55: 0.65,          // drizzle
+    61: 0.40, 63: 0.70, 65: 1.00,           // rain
+    80: 0.50, 81: 0.75, 82: 1.00,           // showers
+    95: 0.90, 96: 1.00, 99: 1.00,           // thunderstorm
+};
+
 async function fetchWeather(lat, lon) {
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&current=windspeed_10m,weathercode&windspeed_unit=ms`;
@@ -543,6 +620,11 @@ async function fetchWeather(lat, lon) {
         const data = await res.json();
         S.windSpeed = data.current?.windspeed_10m ?? 0;
         S.windFactor = Math.min(S.windSpeed / 6, 2.5);
+        S.weatherCode = data.current?.weathercode ?? 0;
+        S.rainIntensity = RAIN_CODES[S.weatherCode] ?? 0;
+        S.isRaining = S.rainIntensity > 0;
+        if (S.isRaining) initRain();
+        setRain(S.isRaining);
         updateWeatherHUD();
     } catch (e) {
         console.warn('Weather unavailable', e);
@@ -713,11 +795,15 @@ document.getElementById('start-btn').addEventListener('click', () => {
 document.getElementById('go-inside-btn').addEventListener('click', () => {
     stopTimer();
     setAmbient(false);
+    setRain(false);
     buildSummary();
     transitionTo('summary');
 });
 
 document.getElementById('play-again-btn').addEventListener('click', () => {
+    setRain(false);
+    S.isRaining = false;
+    S.rainDrops = [];
     transitionTo('start');
 });
 
