@@ -444,7 +444,7 @@ function showChip(text, rarityLabel, x, y) {
     el.className = `discovery-chip chip-${rarityLabel}`;
     el.style.left = clamp(x, 90, innerWidth - 90) + 'px';
     el.style.top = (y - 20) + 'px';
-    el.textContent = `✦ ${text}`;
+    el.textContent = `✦ You've found ${text}`;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 2400);
 }
@@ -502,12 +502,15 @@ function initAudio() {
         if (Math.random() < p && S.screen === 'explore') chirp();
     }, 2200);
 
-    // Crickets
+    // Wind gusts — frequency and volume scale with live windFactor
+    const gustBuf = S.audioCtx.createBuffer(1, Math.ceil(S.audioCtx.sampleRate * 1.5), S.audioCtx.sampleRate);
+    const gustData = gustBuf.getChannelData(0);
+    for (let i = 0; i < gustData.length; i++) gustData[i] = Math.random() * 2 - 1;
+    S.gustBuf = gustBuf;
+
     setInterval(() => {
-        const h = S.hour;
-        const p = (h >= 19 || h < 5) ? 0.65 : h >= 17 ? 0.35 : 0.04;
-        if (Math.random() < p && S.screen === 'explore') cricket();
-    }, 3000);
+        if (S.windFactor > 0.05 && S.screen === 'explore') windGust();
+    }, 2400);
 }
 
 function setRain(on) {
@@ -538,22 +541,26 @@ function chirp() {
     o.stop(t + 0.14);
 }
 
-function cricket() {
+function windGust() {
     const ac = S.audioCtx;
-    const o = ac.createOscillator(),
-        g = ac.createGain();
-    o.type = 'square';
-    o.frequency.value = 4000;
+    if (!ac || !S.gustBuf) return;
+    const src = ac.createBufferSource();
+    src.buffer = S.gustBuf;
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 320 + S.windFactor * 180; // brighter tone when windier
+    const g = ac.createGain();
+    const vol = Math.min(S.windFactor * 0.14, 0.38);
+    const dur = 0.5 + S.windFactor * 0.5;
     const t = ac.currentTime;
-    for (let i = 0; i < 8; i++) {
-        g.gain.setValueAtTime(0, t + i * 0.1);
-        g.gain.linearRampToValueAtTime(0.018, t + i * 0.1 + 0.01);
-        g.gain.linearRampToValueAtTime(0, t + i * 0.1 + 0.05);
-    }
-    o.connect(g);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.12);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(f);
+    f.connect(g);
     g.connect(S.masterGain);
-    o.start(t);
-    o.stop(t + 0.85);
+    src.start(t);
+    src.stop(t + dur + 0.05);
 }
 
 function playDiscovery(rarity) {
@@ -835,7 +842,7 @@ function buildSummary() {
             row.innerHTML = `
         <div style="display:flex;align-items:center">
           <span class="dot dot-${r}"></span>
-          <span class="name">${d.text}</span>
+          <span class="name">You've found ${d.text}</span>
         </div>
         <span class="time">${fmt(d.timestamp)}</span>`;
             sec.appendChild(row);

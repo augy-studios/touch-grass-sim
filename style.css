@@ -40,7 +40,7 @@
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── Reset ──────────────────────────────────────────────── */
+/* ─── Reset ─────────── */
 *,
 *::before,
 *::after {
@@ -66,7 +66,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── Canvas ─────────────────────────────────────────────── */
+/* ─── Canvas ────────── */
 #grass-canvas {
   position: fixed;
   inset: 0;
@@ -76,9 +76,7 @@ body {
   touch-action: none;
 }
 
-/* ─────────────────────────────────────────────────────────
-   CARD PRIMITIVES
-   ───────────────────────────────────────────────────────── */
+/* ─── Card Primitives ── */
 
 .lg {
   background: rgba(255, 255, 255, 0.65);
@@ -96,7 +94,7 @@ body {
   box-shadow: 0 4px 28px rgba(60, 120, 60, 0.16);
 }
 
-/* ─── Buttons ────────────────────────────────────────────── */
+/* ─── Buttons ───────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -172,7 +170,7 @@ body {
   transform: scale(1.08);
 }
 
-/* ─── Screens ────────────────────────────────────────────── */
+/* ─── Screens ───────── */
 .screen {
   position: fixed;
   inset: 0;
@@ -196,7 +194,7 @@ body {
   pointer-events: none;
 }
 
-/* ─── Start Screen ───────────────────────────────────────── */
+/* ─── Start Screen ──── */
 #screen-start .card {
   max-width: 420px;
   width: 100%;
@@ -286,7 +284,7 @@ body {
   box-shadow: 0 0 6px rgba(85, 170, 85, 0.70);
 }
 
-/* ─── HUD (Exploring) ────────────────────────────────────── */
+/* ─── HUD ───────────── */
 #screen-explore {
   align-items: flex-start;
   justify-content: flex-start;
@@ -340,7 +338,7 @@ body {
   margin: .1rem 0;
 }
 
-/* ─── Discovery Chip ─────────────────────────────────────── */
+/* ─── Discovery Chip ── */
 .discovery-chip {
   position: fixed;
   pointer-events: none;
@@ -396,7 +394,7 @@ body {
   background: rgba(255, 245, 200, 0.60);
 }
 
-/* ─── Summary Screen ─────────────────────────────────────── */
+/* ─── Summary Screen ── */
 #screen-summary .card {
   max-width: 460px;
   width: 100%;
@@ -466,6 +464,9 @@ body {
 
 .rarity-section {
   margin-bottom: .75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .rarity-label {
@@ -495,17 +496,18 @@ body {
 }
 
 .discovery-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  padding: .55rem .85rem;
+  gap: .65rem;
+  padding: .45rem .85rem;
   border-radius: .85rem;
   margin-bottom: .3rem;
-  font-size: .88rem;
+  font-size: .85rem;
   font-weight: 500;
   background: rgba(200, 245, 200, 0.45);
   box-shadow: 0 1px 4px rgba(60, 120, 60, 0.08);
   transition: var(--transition);
+  max-width: 100%;
 }
 
 .discovery-item:hover {
@@ -514,6 +516,10 @@ body {
 
 .discovery-item .name {
   color: var(--text-primary);
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .discovery-item .time {
@@ -557,7 +563,7 @@ body {
   margin-bottom: .5rem;
 }
 
-/* ─── Toast ──────────────────────────────────────────────── */
+/* ─── Toast ─────────── */
 #toast {
   position: fixed;
   bottom: 1.5rem;
@@ -581,7 +587,7 @@ body {
   opacity: 1;
 }
 
-/* ─── Install Banner ─────────────────────────────────────── */
+/* ─── Install Banner ── */
 #install-banner {
   position: fixed;
   bottom: 1.5rem;
@@ -616,7 +622,7 @@ body {
   font-size: .9rem;
 }
 
-/* ─── Ripple ─────────────────────────────────────────────── */
+/* ─── Ripple ────────── */
 .ripple {
   position: fixed;
   border-radius: 50%;
@@ -643,7 +649,7 @@ body {
   }
 }
 
-/* ─── Leaderboard ────────────────────────────────────────── */
+/* ─── Leaderboard ───── */
 .leaderboard-section {
   border-top: 1px solid rgba(100, 180, 100, 0.20);
   padding-top: .9rem;
@@ -708,7 +714,7 @@ body {
   font-size: .82rem;
 }
 
-/* ─── Responsive ─────────────────────────────────────────── */
+/* ─── Responsive ────── */
 @media (max-width: 480px) {
   .app-title {
     font-size: 1.5rem;
