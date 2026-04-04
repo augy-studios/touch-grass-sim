@@ -227,6 +227,15 @@ function drawSky() {
     ctx.fillRect(0, 0, W, H);
 }
 
+function getMoonPhase() {
+    // Reference new moon: Jan 6, 2000 18:14 UTC
+    const knownNewMoon = new Date('2000-01-06T18:14:00Z');
+    const synodicPeriod = 29.53058867; // days
+    const daysDiff = (Date.now() - knownNewMoon.getTime()) / 86400000;
+    return ((daysDiff % synodicPeriod) + synodicPeriod) % synodicPeriod / synodicPeriod;
+    // 0 = new moon, 0.5 = full moon
+}
+
 function drawCelestial() {
     const W = innerWidth,
         H = innerHeight;
@@ -253,17 +262,62 @@ function drawCelestial() {
             ctx.fill();
         });
         // Moon
+        const moonCx = W * 0.82, moonCy = H * 0.17, moonR = 34;
+        const moonPhase = getMoonPhase(); // 0 = new, 0.5 = full, 1 = new
+        const moonDark = tod === 'night' ? '#0d1b2a' : '#283593';
+        const litAlpha = 0.08 + 0.84 * ((1 - Math.cos(2 * Math.PI * moonPhase)) / 2);
         ctx.save();
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
         ctx.shadowColor = 'rgba(200,255,200,0.4)';
-        ctx.shadowBlur = 22;
+        ctx.shadowBlur = 22 * litAlpha;
+        ctx.fillStyle = `rgba(255,255,255,${litAlpha.toFixed(3)})`;
         ctx.beginPath();
-        ctx.arc(W * 0.82, H * 0.17, 34, 0, Math.PI * 2);
+        ctx.arc(moonCx, moonCy, moonR, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = tod === 'night' ? '#0d1b2a' : '#283593';
+        ctx.shadowBlur = 0;
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(W * 0.82 + 12, H * 0.17, 34, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(moonCx, moonCy, moonR, 0, Math.PI * 2);
+        ctx.clip();
+        const xt = Math.cos(Math.PI * 2 * moonPhase) * moonR;
+        ctx.fillStyle = moonDark;
+        if (moonPhase < 0.5) {
+            // waxing — shadow on left
+            ctx.beginPath();
+            ctx.arc(moonCx, moonCy, moonR, Math.PI / 2, 3 * Math.PI / 2);
+            ctx.closePath();
+            ctx.fill();
+            if (xt > 0) {
+                ctx.beginPath();
+                ctx.ellipse(moonCx, moonCy, xt, moonR, 0, -Math.PI / 2, Math.PI / 2);
+                ctx.closePath();
+                ctx.fill();
+            } else if (xt < 0) {
+                ctx.fillStyle = `rgba(255,255,255,${litAlpha.toFixed(3)})`;
+                ctx.beginPath();
+                ctx.ellipse(moonCx, moonCy, -xt, moonR, 0, Math.PI / 2, 3 * Math.PI / 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+        } else {
+            // waning — shadow on right
+            ctx.beginPath();
+            ctx.arc(moonCx, moonCy, moonR, -Math.PI / 2, Math.PI / 2);
+            ctx.closePath();
+            ctx.fill();
+            if (xt < 0) {
+                ctx.fillStyle = `rgba(255,255,255,${litAlpha.toFixed(3)})`;
+                ctx.beginPath();
+                ctx.ellipse(moonCx, moonCy, -xt, moonR, 0, -Math.PI / 2, Math.PI / 2);
+                ctx.closePath();
+                ctx.fill();
+            } else if (xt > 0) {
+                ctx.beginPath();
+                ctx.ellipse(moonCx, moonCy, xt, moonR, 0, Math.PI / 2, 3 * Math.PI / 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+        ctx.restore();
         ctx.restore();
     } else if (tod === 'day' || tod === 'morning' || tod === 'dawn') {
         ctx.save();
