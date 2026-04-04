@@ -178,7 +178,7 @@ function initGrass() {
             sway: rand(0, Math.PI * 2),
             swaySpd: rand(0.018, 0.04),
             swayAmp: rand(0.01, 0.03),
-            tension: rand(0.04, 0.08),
+            tension: rand(0.10, 0.18),
             color: grassColor(),
         });
     }
@@ -194,7 +194,7 @@ function initGrass() {
             sway: rand(0, Math.PI * 2),
             swaySpd: rand(0.015, 0.03),
             swayAmp: rand(0.012, 0.025),
-            tension: rand(0.04, 0.07),
+            tension: rand(0.10, 0.16),
             color: grassColor(),
         });
     }
@@ -343,14 +343,14 @@ function render() {
 
 // ─── Interaction ──────────────────────────────────────────
 function pointerHandler(cx, cy) {
-    const RADIUS = 110; // Manhattan radius — diamond-shaped interaction area
+    const RADIUS = 130; // Manhattan radius — diamond-shaped interaction area
 
     // Grass reacts on all screens
     S.grass.forEach(b => {
         const dist = Math.abs(b.x - cx) + Math.abs(b.by - cy);
         if (dist < RADIUS) {
             const str = (RADIUS - dist) / RADIUS;
-            b.targetAngle = Math.atan2(b.x - cx, 50) * str * 0.55;
+            b.targetAngle = Math.atan2(b.x - cx, 40) * str * 1.1;
         } else {
             b.targetAngle = 0;
         }
