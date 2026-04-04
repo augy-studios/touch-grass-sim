@@ -29,7 +29,7 @@ export default async function handler(req) {
     // GET — fetch top 10 by discoveries desc, then rare_finds desc
     if (req.method === 'GET') {
         const res = await fetch(
-            `${SUPABASE_URL}/rest/v1/touch_grass_lb?select=username,discoveries,time_seconds,rare_finds,location&order=discoveries.desc,rare_finds.desc&limit=10`,
+            `${SUPABASE_URL}/rest/v1/touch_grass_lb?select=username,score,discoveries,time_seconds,rare_finds,location&order=score.desc,discoveries.desc&limit=10`,
             { headers: authHeaders }
         );
         if (!res.ok) return new Response(JSON.stringify([]), { status: 200, headers: corsHeaders });
@@ -61,6 +61,7 @@ export default async function handler(req) {
             },
             body: JSON.stringify({
                 username: String(username).slice(0, 32),
+                score: Math.max(0, Math.floor(body.score ?? 0)),
                 discoveries: Math.max(0, Math.floor(discoveries)),
                 time_seconds: Math.max(0, Math.floor(time_seconds)),
                 rare_finds: Math.max(0, Math.floor(rare_finds)),

@@ -1,6 +1,6 @@
 'use strict';
 
-// ─── State ────────────────────────────────────────────────
+// ─── State ───────────
 const S = {
     screen: 'start', // 'start' | 'explore' | 'summary'
     location: '',
@@ -17,6 +17,7 @@ const S = {
     masterGain: null,
     dpr: devicePixelRatio || 1,
     raf: null,
+    score: 0,
     windSpeed: 0,   // m/s from Open-Meteo
     windFactor: 0,  // normalised [0, 2.5]
     weatherCode: 0,
@@ -27,7 +28,7 @@ const S = {
     lbSubmitted: false,
 };
 
-// ─── DOM refs ─────────────────────────────────────────────
+// ─── DOM refs ────────
 const canvas = document.getElementById('grass-canvas');
 const ctx = canvas.getContext('2d');
 const screens = {
@@ -41,7 +42,7 @@ const hudLocation = document.getElementById('hud-location');
 const hudLocRow = document.getElementById('hud-location-row');
 const toast = document.getElementById('toast');
 
-// ─── Utility ──────────────────────────────────────────────
+// ─── Utility ─────────
 const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -63,7 +64,7 @@ function transitionTo(id) {
     }, 420);
 }
 
-// ─── Time of Day ──────────────────────────────────────────
+// ─── Time of Day ─────
 const TIME_LABELS = {
     dawn: 'Dawn  🌅',
     morning: 'Morning  ☀️',
@@ -144,7 +145,7 @@ function updateTimeOfDay() {
     document.getElementById('time-badge-text').textContent = TIME_LABELS[S.timeOfDay];
 }
 
-// ─── Canvas / Grass ───────────────────────────────────────
+// ─── Canvas / Grass ──
 function resizeCanvas() {
     S.dpr = devicePixelRatio || 1;
     canvas.width = innerWidth * S.dpr;
@@ -213,7 +214,7 @@ function initDiscoveryPts() {
     }
 }
 
-// ─── Render loop ──────────────────────────────────────────
+// ─── Render loop ─────
 let stars = null;
 
 function drawSky() {
@@ -341,7 +342,7 @@ function render() {
     S.raf = requestAnimationFrame(render);
 }
 
-// ─── Interaction ──────────────────────────────────────────
+// ─── Interaction ─────
 function pointerHandler(cx, cy) {
     const RADIUS = 130; // Manhattan radius — diamond-shaped interaction area
 
@@ -399,7 +400,7 @@ function spawnRipple(x, y) {
     setTimeout(() => el.remove(), 900);
 }
 
-// ─── Discovery API ────────────────────────────────────────
+// ─── Discovery API ───
 async function triggerDiscovery(x, y, rarity) {
     if (S.fetchQueue) return;
     S.fetchQueue = true;
@@ -428,6 +429,8 @@ async function triggerDiscovery(x, y, rarity) {
             rarity: rarityLabel,
             timestamp: S.elapsed
         });
+        const PTS = { common: 1, uncommon: 2, rare: 3 };
+        S.score += PTS[rarityLabel] ?? 0;
         hudCount.textContent = S.discoveries.length;
 
         showChip(text, rarityLabel, x, y);
@@ -449,7 +452,7 @@ function showChip(text, rarityLabel, x, y) {
     setTimeout(() => el.remove(), 2400);
 }
 
-// ─── Audio ────────────────────────────────────────────────
+// ─── Audio ───────────
 function initAudio() {
     if (S.audioCtx) return;
     S.audioCtx = new(window.AudioContext || window.webkitAudioContext)();
@@ -611,7 +614,7 @@ function playDiscovery(rarity) {
     }
 }
 
-// ─── Weather ──────────────────────────────────────────────
+// ─── Weather ─────────
 // WMO code → rain intensity (0 = dry, >0 = raining)
 const RAIN_CODES = {
     51: 0.25, 53: 0.45, 55: 0.65,          // drizzle
@@ -649,7 +652,7 @@ function updateWeatherHUD() {
     val.textContent = `${icon} ${ws.toFixed(1)} m/s · ${label}`;
 }
 
-// ─── Leaderboard ──────────────────────────────────────────
+// ─── Leaderboard ─────
 function escHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -668,6 +671,7 @@ async function submitToLeaderboard(username) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             username,
+            score: S.score,
             discoveries: S.discoveries.length,
             time_seconds: S.elapsed,
             rare_finds: S.discoveries.filter(d => d.rarity === 'rare').length,
@@ -689,15 +693,15 @@ async function renderLeaderboard() {
     const medals = ['🥇', '🥈', '🥉'];
     const table = document.createElement('table');
     table.className = 'lb-table';
-    table.innerHTML = `<thead><tr><th>#</th><th>Name</th><th>Finds</th><th>Rare</th><th>Time</th></tr></thead>`;
+    table.innerHTML = `<thead><tr><th>#</th><th>Name</th><th>Score</th><th>Finds</th><th>Time</th></tr></thead>`;
     const tbody = document.createElement('tbody');
     rows.forEach((r, i) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="lb-rank">${medals[i] || i + 1}</td>
             <td>${escHtml(r.username)}</td>
+            <td><strong>${r.score ?? '—'}</strong></td>
             <td>${r.discoveries}</td>
-            <td>${r.rare_finds}</td>
             <td>${fmt(r.time_seconds)}</td>`;
         tbody.appendChild(tr);
     });
@@ -706,7 +710,7 @@ async function renderLeaderboard() {
     list.appendChild(table);
 }
 
-// ─── Timer ────────────────────────────────────────────────
+// ─── Timer ───────────
 function startTimer() {
     S.timerStart = Date.now() - S.elapsed * 1000;
     S.timerHandle = setInterval(() => {
@@ -719,7 +723,7 @@ function stopTimer() {
     clearInterval(S.timerHandle);
 }
 
-// ─── Locations ────────────────────────────────────────────
+// ─── Locations ───────
 const LOCATIONS = [
     // Parks & Nature
     'Singapore Botanic Gardens',
@@ -763,13 +767,14 @@ document.getElementById('shuffle-btn').addEventListener('click', () => {
     document.getElementById('location-input').value = filtered[Math.floor(Math.random() * filtered.length)];
 });
 
-// ─── Screen transitions ───────────────────────────────────
+// ─── Screen transitions
 document.getElementById('start-btn').addEventListener('click', () => {
     initAudio();
     if (S.audioCtx.state === 'suspended') S.audioCtx.resume();
     S.location = document.getElementById('location-input').value.trim();
     S.elapsed = 0;
     S.discoveries = [];
+    S.score = 0;
     S.lbSubmitted = false;
     hudCount.textContent = '0';
     hudTimer.textContent = '0:00';
@@ -814,11 +819,11 @@ document.getElementById('play-again-btn').addEventListener('click', () => {
     transitionTo('start');
 });
 
-// ─── Summary ──────────────────────────────────────────────
+// ─── Summary ─────────
 function buildSummary() {
     document.getElementById('stat-time').textContent = fmt(S.elapsed);
     document.getElementById('stat-count').textContent = S.discoveries.length;
-    document.getElementById('stat-rare').textContent = S.discoveries.filter(d => d.rarity === 'rare').length;
+    document.getElementById('stat-score').textContent = S.score;
     document.getElementById('summary-location').textContent =
         S.location ? `Adventure at ${S.location}` : 'A wild grass adventure!';
 
@@ -882,11 +887,11 @@ document.getElementById('lb-submit-btn').addEventListener('click', async () => {
 document.getElementById('share-btn').addEventListener('click', () => {
     const rare = S.discoveries.filter(d => d.rarity === 'rare').map(d => d.text).join(', ') || 'nothing rare';
     const loc = S.location ? `📍 ${S.location}\n` : '';
-    const text = `🌿 Touch Grass Simulator\n${loc}⏱ ${fmt(S.elapsed)} outside\n✨ ${S.discoveries.length} discoveries\n⭐ Rare: ${rare}\n\nhttps://touch-grass-sg.vercel.app`;
+    const text = `🌿 Touch Grass Simulator\n${loc}⏱ ${fmt(S.elapsed)} outside\n✨ ${S.discoveries.length} discoveries · ${S.score} pts\n⭐ Rare: ${rare}\n\nhttps://touch-grass-sg.vercel.app`;
     navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
 });
 
-// ─── PWA Install ──────────────────────────────────────────
+// ─── PWA Install ─────
 let deferredPrompt = null;
 const installBanner = document.getElementById('install-banner');
 
@@ -913,12 +918,12 @@ document.getElementById('dismiss-install').addEventListener('click', () => {
     installBanner.classList.remove('show');
 });
 
-// ─── Service Worker ───────────────────────────────────────
+// ─── Service Worker ──
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
-// ─── Init ─────────────────────────────────────────────────
+// ─── Init ────────────
 updateTimeOfDay();
 setInterval(updateTimeOfDay, 60000);
 resizeCanvas();
