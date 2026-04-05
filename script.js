@@ -841,6 +841,10 @@ document.getElementById('shuffle-btn').addEventListener('click', () => {
 });
 
 // ─── Screen transitions
+document.getElementById('location-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('start-btn').click();
+});
+
 document.getElementById('start-btn').addEventListener('click', () => {
     initAudio();
     if (S.audioCtx.state === 'suspended') S.audioCtx.resume();
@@ -939,6 +943,10 @@ function buildSummary() {
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '🏆 Submit'; }
     renderLeaderboard();
 }
+
+document.getElementById('lb-username').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('lb-submit-btn').click();
+});
 
 document.getElementById('lb-submit-btn').addEventListener('click', async () => {
     const username = document.getElementById('lb-username').value.trim();
