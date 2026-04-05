@@ -26,7 +26,25 @@ const S = {
     rainDrops: [],
     rainGain: null,
     lbSubmitted: false,
+    latestAchievement: null,
 };
+
+// ─── Achievements ────
+const ACHIEVEMENTS = [
+    { threshold: 1000, name: 'Unemployment Final Boss' },
+    { threshold: 100,  name: 'Professional Grass Toucher' },
+];
+
+function checkAchievements() {
+    const count = S.discoveries.length;
+    for (const a of ACHIEVEMENTS) {
+        if (count === a.threshold) {
+            S.latestAchievement = a.name;
+            showToast(`🏆 Achievement unlocked: ${a.name}!`, 3500);
+            break;
+        }
+    }
+}
 
 // ─── DOM refs ────────
 const canvas = document.getElementById('grass-canvas');
@@ -486,6 +504,7 @@ async function triggerDiscovery(x, y, rarity) {
         const PTS = { common: 1, uncommon: 2, rare: 3 };
         S.score += PTS[rarityLabel] ?? 0;
         hudCount.textContent = S.discoveries.length;
+        checkAchievements();
 
         showChip(text, rarityLabel, x, y);
         playDiscovery(rarity);
@@ -830,6 +849,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
     S.discoveries = [];
     S.score = 0;
     S.lbSubmitted = false;
+    S.latestAchievement = null;
     hudCount.textContent = '0';
     hudTimer.textContent = '0:00';
     if (S.location) {
@@ -885,6 +905,7 @@ function buildSummary() {
     list.innerHTML = '';
 
     if (!S.discoveries.length) {
+        S.latestAchievement = 'Professional Grass Avoider';
         list.innerHTML = `<div class="empty-state"><div class="emoji">🏆</div>Achievement unlocked:<br><strong>Professional Grass Avoider</strong></div>`;
         return;
     }
@@ -941,7 +962,8 @@ document.getElementById('lb-submit-btn').addEventListener('click', async () => {
 document.getElementById('share-btn').addEventListener('click', () => {
     const rare = S.discoveries.filter(d => d.rarity === 'rare').map(d => d.text).join(', ') || 'nothing rare';
     const loc = S.location ? `📍 ${S.location}\n` : '';
-    const text = `🌿 Touch Grass Simulator\n${loc}⏱ ${fmt(S.elapsed)} outside\n✨ ${S.discoveries.length} discoveries · ${S.score} pts\n⭐ Rare: ${rare}\n\nhttps://grass.uwuapps.org`;
+    const achieveLine = S.latestAchievement ? `🏆 I achieved: ${S.latestAchievement}\n` : '';
+    const text = `🌿 Touch Grass Simulator\n${loc}⏱ ${fmt(S.elapsed)} outside\n✨ ${S.discoveries.length} discoveries · ${S.score} pts\n⭐ Rare: ${rare}\n${achieveLine}\nhttps://grass.uwuapps.org`;
     navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
 });
 
