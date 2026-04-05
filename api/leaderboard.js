@@ -26,14 +26,27 @@ export default async function handler(req) {
         'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
     };
 
-    // GET — fetch top 10 by discoveries desc, then rare_finds desc
+    // GET — fetch top 10 unique usernames by highest score
     if (req.method === 'GET') {
         const res = await fetch(
-            `${SUPABASE_URL}/rest/v1/touch_grass_lb?select=username,score,discoveries,time_seconds,rare_finds,location&order=score.desc,discoveries.desc&limit=10`,
+            `${SUPABASE_URL}/rest/v1/touch_grass_lb?select=username,score,discoveries,time_seconds,rare_finds,location&order=score.desc&limit=500`,
             { headers: authHeaders }
         );
         if (!res.ok) return new Response(JSON.stringify([]), { status: 200, headers: corsHeaders });
-        const data = await res.json();
+        const rows = await res.json();
+
+        // Deduplicate: keep only the highest-score entry per username
+        const best = new Map();
+        for (const row of rows) {
+            const key = row.username?.toLowerCase() ?? '';
+            if (!best.has(key) || row.score > best.get(key).score) {
+                best.set(key, row);
+            }
+        }
+        const data = [...best.values()]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+
         return new Response(JSON.stringify(data), {
             status: 200,
             headers: { ...corsHeaders, 'Cache-Control': 'public, max-age=30' },
